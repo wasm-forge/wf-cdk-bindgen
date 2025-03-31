@@ -3,7 +3,7 @@
 
 ## DISCLAIMER
 
-This is a temporary fork of the original [ic-cdk-bindgen](https://github.com/dfinity/cdk-rs/tree/main/src/ic-cdk-bindgen) which is under development. Once the necessary changes are propagated into the original project, the dependency will no longer be required.
+This is a temporary fork of the original [ic-cdk-bindgen](https://github.com/dfinity/cdk-rs/tree/main/src/ic-cdk-bindgen). Once the necessary changes are propagated into the original project, the dependency will no longer be required.
 
 ## 
 
