@@ -1,11 +1,10 @@
 # wf-cdk-bindgen
 
-
 ## DISCLAIMER
 
-This is a temporary fork of the original [ic-cdk-bindgen](https://github.com/dfinity/cdk-rs/tree/main/src/ic-cdk-bindgen). Once the necessary changes are propagated into the original project, the dependency will no longer be required.
+This is a temporary fork of the [ic-cdk-bindgen](https://github.com/dfinity/cdk-rs/tree/main/src/ic-cdk-bindgen). Once the necessary changes are propagated into the original project, this crate will no longer be required.
 
-## 
+## About project
 
 Generate Rust bindings from Candid to make inter-canister calls.
 
