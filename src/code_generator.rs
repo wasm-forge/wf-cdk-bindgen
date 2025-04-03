@@ -563,32 +563,34 @@ pub fn pp_actor_deploy<'a>(
     struct_name: String,
     init_args: Option<&'a Vec<Type>>,
 ) -> RcDoc<'a> {
-    let Some(init_args) = init_args else {
-        return RcDoc::nil();
-    };
-
     let empty = BTreeSet::new();
 
     match config.target {
         Target::CanisterCall | Target::Agent | Target::CanisterStub => RcDoc::nil(),
         Target::Builder => {
-            let args = RcDoc::intersperse(
-                std::iter::once(str("deployer: &super::Deployer")).chain(
-                    init_args.iter().enumerate().map(|(i, ty)| {
+            let mut args = str("deployer: &super::Deployer");
+
+            if let Some(init_args) = init_args {
+                args = RcDoc::intersperse(
+                    std::iter::once(args).chain(init_args.iter().enumerate().map(|(i, ty)| {
                         RcDoc::as_string(format!("arg{i}: ")).append(pp_ty(ty, &empty))
-                    }),
-                ),
-                ", ",
-            );
+                    })),
+                    ", ",
+                );
+            }
 
             let sig = enclose("pub fn deploy(", args, ")")
                 .append(format!("-> super::DeployBuilder<{}>", struct_name))
                 .append(RcDoc::space());
 
-            let args = RcDoc::intersperse(
-                (0..init_args.len()).map(|i| RcDoc::text(format!("&arg{i}"))),
-                RcDoc::text(", "),
-            );
+            let args = if let Some(init_args) = init_args {
+                RcDoc::intersperse(
+                    (0..init_args.len()).map(|i| RcDoc::text(format!("&arg{i}"))),
+                    RcDoc::text(", "),
+                )
+            } else {
+                str("")
+            };
 
             let body = str("let args = ")
                 .append(str("Encode!").append(enclose("(", args, ");")))
