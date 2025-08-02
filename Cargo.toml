@@ -1,6 +1,6 @@
 [package]
 name = "wf-cdk-bindgen"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 rust-version = "1.78.0"
@@ -14,7 +14,7 @@ keywords = ["internet-computer", "types", "dfinity", "canister", "cdk"]
 include = ["src", "Cargo.toml", "LICENSE", "README.md"]
 
 [dependencies]
-candid = "0.10.4"
-candid_parser = "0.1.4"
-convert_case = "0.6"
+candid = "0.10.16"
+candid_parser = "0.2.1"
+convert_case = "0.7"
 pretty = "0.12"

@@ -86,6 +86,7 @@ static KEYWORDS: [&str; 51] = [
     "while", "async", "await", "dyn", "abstract", "become", "box", "do", "final", "macro",
     "override", "priv", "typeof", "unsized", "virtual", "yield", "try",
 ];
+
 fn ident_(id: &str, case: Option<Case>) -> (RcDoc, bool) {
     if id.is_empty()
         || id.starts_with(|c: char| !c.is_ascii_alphabetic() && c != '_')
@@ -107,6 +108,7 @@ fn ident_(id: &str, case: Option<Case>) -> (RcDoc, bool) {
         (RcDoc::text(id), is_rename)
     }
 }
+
 fn ident(id: &str, case: Option<Case>) -> RcDoc {
     ident_(id, case).0
 }
@@ -333,12 +335,10 @@ fn pp_function<'a>(config: &Config, id: &'a str, func: &'a Function) -> RcDoc<'a
         Target::Builder => "&self",
     });
     let args = concat(
-        std::iter::once(arg_prefix).chain(
-            func.args
-                .iter()
-                .enumerate()
-                .map(|(i, ty)| RcDoc::as_string(format!("arg{i}: ")).append(pp_ty(ty, &empty))),
-        ),
+        std::iter::once(arg_prefix).chain(func.args.iter().enumerate().map(|(i, ty)| {
+            // TODO: find a way to give argument names
+            RcDoc::as_string(format!("arg{i}: ")).append(pp_ty(ty, &empty))
+        })),
         ",",
     );
     let result = match config.target {
@@ -465,7 +465,7 @@ fn pp_actor<'a>(config: &'a Config, env: &'a TypeEnv, actor: &'a Type) -> RcDoc<
     );
     let struct_name = config.service_name.to_case(Case::Pascal);
 
-    let service_def_prefix = RcDoc::text(format!("pub struct {} ", struct_name));
+    let service_def_prefix = RcDoc::text(format!("pub struct {struct_name} "));
 
     let service_def_body = match config.target {
         Target::CanisterCall => str("(pub Principal);"),
@@ -489,10 +489,10 @@ fn pp_actor<'a>(config: &'a Config, env: &'a TypeEnv, actor: &'a Type) -> RcDoc<
         .append(RcDoc::hardline());
 
     let service_impl = match config.target {
-        Target::CanisterCall => format!("impl {} ", struct_name),
-        Target::Agent => format!("impl<'a> {}<'a> ", struct_name),
+        Target::CanisterCall => format!("impl {struct_name} "),
+        Target::Agent => format!("impl<'a> {struct_name}<'a> "),
         Target::CanisterStub => unimplemented!(),
-        Target::Builder => format!("impl {} ", struct_name),
+        Target::Builder => format!("impl {struct_name} "),
     };
     let res = service_def
         .append(RcDoc::hardline())
@@ -507,8 +507,7 @@ fn pp_actor<'a>(config: &'a Config, env: &'a TypeEnv, actor: &'a Type) -> RcDoc<
             .collect::<Vec<_>>()
             .join(", ");
         let id = RcDoc::text(format!(
-            "pub const CANISTER_ID : Principal = Principal::from_slice(&[{}]); // {}",
-            slice, cid
+            "pub const CANISTER_ID : Principal = Principal::from_slice(&[{slice}]); // {cid}"
         ));
         let instance = match config.target {
             Target::CanisterCall => format!(
@@ -549,7 +548,7 @@ pub fn pp_actor_new<'a>(config: &'a Config, struct_name: String) -> RcDoc<'a> {
                     "}",
                 ));
             let result = enclose("pub fn new(", args, ")")
-                .append(format!("-> {}", struct_name))
+                .append(format!("-> {struct_name}"))
                 .append(RcDoc::space())
                 .append(enclose_space("{", body, "}"))
                 .append(RcDoc::hardline());
@@ -580,7 +579,7 @@ pub fn pp_actor_deploy<'a>(
             }
 
             let sig = enclose("pub fn deploy(", args, ")")
-                .append(format!("-> super::DeployBuilder<{}>", struct_name))
+                .append(format!("-> super::DeployBuilder<{struct_name}>"))
                 .append(RcDoc::space());
 
             let args = if let Some(init_args) = init_args {
@@ -625,8 +624,7 @@ pub fn pp_actor_canister_id<'a>(config: &'a Config) -> RcDoc<'a> {
         Target::Builder => {
             let body = if let Some(canister_id) = config.canister_id {
                 RcDoc::text(format!(
-                    "Some(Principal::from_text(\"{}\").unwrap())",
-                    canister_id
+                    "Some(Principal::from_text(\"{canister_id}\").unwrap())"
                 ))
             } else {
                 str("None")
@@ -646,21 +644,20 @@ pub fn pp_actor_wasm<'a>(config: &'a Config) -> RcDoc<'a> {
         Target::CanisterCall | Target::Agent | Target::CanisterStub => RcDoc::nil(),
         Target::Builder => {
             let body = if let Some(wasm_path) = config.canister_wasm_path.clone() {
-                let path = if wasm_path.starts_with("$HOME") {
-                    let wasm_path = wasm_path[5..].to_string();
+                let path = if let Some(wasm_path) = wasm_path.strip_prefix("$HOME") {
                     str("let mut path = std::path::PathBuf::new();")
                         .append(str("path.push(std::env::var(\"HOME\").unwrap());"))
-                        .append(RcDoc::text(format!("path.push(\"{}\");", wasm_path)))
+                        .append(RcDoc::text(format!("path.push(\"{wasm_path}\");")))
                 } else {
                     str("let mut path = std::path::PathBuf::new();")
-                        .append(RcDoc::text(format!("path.push(\"{}\");", wasm_path)))
+                        .append(RcDoc::text(format!("path.push(\"{wasm_path}\");")))
                 };
 
                 path.append(str("let wasm = std::fs::read(path.as_path())"))
                     .append(".unwrap_or_else")
                     .append(enclose(
                         "(",
-                        str("|_| panic!(\"wasm binary not found: {:?}\", path)"),
+                        str("|_| panic!(\"wasm binary not found: {path:?}\")"),
                         ");",
                     ))
                     .append(str("Some(wasm)"))
